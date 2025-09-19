@@ -38,3 +38,5 @@ for epoch in range(10):
         loss = criterion(y_pred, y)
         loss.backward()
         optimizer.step()
+
+        
