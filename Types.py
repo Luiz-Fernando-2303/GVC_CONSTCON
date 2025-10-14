@@ -10,8 +10,15 @@ class Property:
 
     def __repr__(self):
         return f"Property(Category={self.Category}, Name={self.Name}, Info={self.Info})"
-
-
+    
+    def __todict__(self):
+        return {
+            "propertyid": self.PropertyId,
+            "category": self.Category,
+            "name": self.Name,
+            "info": self.Info
+        }
+    
 class Geometry:
     def __init__(self):
         self.vertices: List[Tuple[float, float, float]] = []  # [(x, y, z), ...]
@@ -61,8 +68,6 @@ class Geometry:
                     for i in range(1, len(indices) - 1):
                         self.triangles.append((indices[0], indices[i], indices[i+1]))
 
-        print(f"[Geometry] Decoded {len(self.vertices)} vertices and {len(self.triangles)} triangles")
-
     @classmethod
     def from_mesh_data(cls, mesh_data: bytes) -> 'Geometry':
         """
@@ -73,7 +78,7 @@ class Geometry:
         return geom
 
     def __repr__(self):
-        return f"Geometry(vertices={len(self.vertices)}, triangles={len(self.triangles)})"
+        return f"Geometry(vertices={len(self.vertices)}, triangles={len(self.triangles)}------)"
 
 
 class PropObject:
@@ -87,15 +92,7 @@ class PropObject:
 
 
 class GvcObject:
-    def __init__(
-        self,
-        object_id: Optional[int] = None,
-        name: str = "",
-        type_: str = "",
-        source_file: str = "",
-        properties: Optional[List[Property]] = None,
-        geometries: Optional[List[Geometry]] = None
-    ):
+    def __init__(self, object_id: Optional[int] = None, name: str = "", type_: str = "", source_file: str = "", properties: Optional[List[Property]] = None, geometries: Optional[List[Geometry]] = None):
         self.ObjectId: Optional[int] = object_id
         self.Name: str = name
         self.Type: str = type_
