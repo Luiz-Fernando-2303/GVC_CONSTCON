@@ -5,6 +5,8 @@ import re
 import unicodedata
 from collections import Counter
 from typing import Optional, List, Dict
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from tqdm import tqdm
 
 import numpy as np
 from sentence_transformers import SentenceTransformer
@@ -61,13 +63,51 @@ def normalize_info(text: str) -> str:
     text = re.sub(r'\s+', ' ', text).strip()
     return text
 
+def GenerateExtraSamples(limit: int = 10000, items: Optional[List[GvcObject]] = None, levels_to_keep: int = 1) -> List[GvcObject]:
+    items: List[GvcObject] = items or DBManager._getItems(limit)
+    if not items:
+        return []
+
+    extraSamples: List[GvcObject] = []
+    for item in items:
+        code_props = [prop for prop in item.Properties if prop.Name == "NBR_COD"]
+        if not code_props:
+            continue
+
+        clone = GvcObject()
+        clone.Name = item.Name
+        clone.Type = item.Type
+        clone.SourceFile = item.SourceFile
+        clone.Properties = [prop for prop in item.Properties if prop not in code_props]
+        clone.Geometries = item.Geometries
+
+        newProps: List[Property] = []
+        for prop in code_props:
+            name = prop.Name
+            category = prop.Category
+
+            code_levels = prop.Info.split('-')[1:]
+            total_levels = 6
+            code_levels += ['00'] * (total_levels - len(code_levels))
+            new_code_levels = code_levels[:levels_to_keep] + ['00'] * (total_levels - levels_to_keep)
+            info = '3E-' + '-'.join(new_code_levels)
+
+            newProp = Property(category=category, name=name, info=info, property_id=prop.PropertyId)
+            newProps.append(newProp)
+
+        clone.Properties += newProps
+        extraSamples.append(clone)
+
+    return extraSamples
+
 def ComumPropsPerCode(limit: int = 10000, items: Optional[List[GvcObject]] = None) -> Dict[str, List[dict[str, str]]]:
     items: List[GvcObject] = items or DBManager._getItems(limit)
     if not items:
         return {}
 
     codes: Dict[str, List[dict[str, str]]] = {}
-    for item in items:
+
+    def process_item(item: GvcObject) -> tuple[str, List[dict[str, str]]]:
         code_prop = [prop for prop in item.Properties if prop.Name == "NBR_COD"]
         code = code_prop[0].Info if code_prop else "Sem Código"
 
@@ -76,11 +116,19 @@ def ComumPropsPerCode(limit: int = 10000, items: Optional[List[GvcObject]] = Non
             for prop in item.Properties
             if prop.Name != "NBR_COD" and is_descriptive(prop.Info)
         ]
-        codes[code] = props
+        return code, props
+
+    with ThreadPoolExecutor() as executor:
+        futures = [executor.submit(process_item, item) for item in items]
+        for future in tqdm(as_completed(futures), total=len(items), desc="Processando itens"):
+            code, props = future.result()
+            if code not in codes:
+                codes[code] = []
+            codes[code].extend(props)
 
     for code, props in codes.items():
         prop_tuples = [tuple(sorted(p.items())) for p in props]
-        codes[code] = [dict(t) for t, _ in Counter(prop_tuples).most_common(100)]
+        codes[code] = [dict(t) for t, _ in Counter(prop_tuples).most_common(10000)]
 
     return codes
 

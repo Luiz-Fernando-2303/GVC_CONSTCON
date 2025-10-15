@@ -4,9 +4,9 @@ from typing import List
 from tqdm import tqdm
 from Types import GvcObject, Property, Geometry
 
-LOCALHOST = "http://localhost:5066"
-BASE_URL_GETALL = f"{LOCALHOST}/modelitems/getall"
-BASE_URL_GETBYFILTER = f"{LOCALHOST}/modelitems/filter"
+API = "http://ec2-34-229-178-60.compute-1.amazonaws.com:5000"
+BASE_URL_GETALL = f"{API}/modelitems/getall"
+BASE_URL_GETBYFILTER = f"{API}/modelitems/filter"
 
 class DBManager:
     @staticmethod
