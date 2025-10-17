@@ -132,16 +132,25 @@ def ComumPropsPerCode(limit: int = 10000, items: Optional[List[GvcObject]] = Non
 
     return codes
 
-def EmbeddingMatriz(props: Dict[str, List[dict[str, str]]], model: SentenceTransformer) -> Dict[str, np.ndarray]:
+def EmbeddingMatriz(props: Dict[str, List[dict[str, str]]], model: SentenceTransformer, max_props: int = 10) -> Dict[str, np.ndarray]:
+    dim = model.get_sentence_embedding_dimension()
     embeddings_per_code: Dict[str, np.ndarray] = {}
+    
     for code, props_list in props.items():
-        infos = [normalize_info(p["info"]) for p in props_list]
-        if not infos:
-            embeddings_per_code[code] = np.zeros((0, model.get_sentence_embedding_dimension()))
-        else:
-            embs = model.encode(infos, convert_to_numpy=True, show_progress_bar=False)
-            embeddings_per_code[code] = embs
-
+        infos = [normalize_info(p["info"]) for p in props_list if is_descriptive(p["info"])]
+        
+        # Truncate ou pad para max_props
+        if len(infos) > max_props:
+            infos = infos[:max_props]
+        embs = model.encode(infos, convert_to_numpy=True, show_progress_bar=False) if infos else np.zeros((0, dim))
+        
+        # Padding com zeros se houver menos infos
+        if embs.shape[0] < max_props:
+            padding = np.zeros((max_props - embs.shape[0], dim))
+            embs = np.vstack([embs, padding])
+        
+        embeddings_per_code[code] = embs
+    
     return embeddings_per_code
 
 def SimilarityDict(test_embeddings: np.ndarray, ref_embeddings: Dict[str, np.ndarray], skip_same: bool = False) -> Dict[str, float]:
