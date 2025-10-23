@@ -22,43 +22,8 @@ class DBManager:
             return []
 
         items = resp.json()
-        objects_list: List[GvcObject] = []
-
-        for item in tqdm(items, desc="Processando itens"):
-            gvc = GvcObject()
-            gvc.ObjectId = item.get("objectid", 0)
-            gvc.Name = item.get("name", "")
-            gvc.Type = item.get("type", "")
-            gvc.SourceFile = item.get("sourcefile", "")
-
-            properties_raw = item.get("properties", [])
-            gvc.Properties = [
-                Property(
-                    property_id=prop.get("propertyId", 0),
-                    category=prop.get("category", ""),
-                    name=prop.get("name", ""),
-                    info=prop.get("info", "")
-                )
-                for prop in properties_raw
-            ]
-
-            geometries_raw = item.get("geometries", [])
-            gvc.Geometries = []
-            for geo in geometries_raw:
-                geometry = Geometry()
-                mesh_data_b64 = geo.get("mesh")
-                if mesh_data_b64:
-                    mesh_data = base64.b64decode(mesh_data_b64) if isinstance(mesh_data_b64, str) else mesh_data_b64
-                    geometry.decode_mesh(mesh_data)
-                geometry.GeometryId = geo.get("geometryid", 0)
-                geometry.ObjectId = gvc.ObjectId
-                geometry.Transform = geo.get("transform")
-                gvc.Geometries.append(geometry)
-
-            objects_list.append(gvc)
-
-        return objects_list
-
+        return GvcObject.build(items)
+    
     @staticmethod
     def _getItemsByFilter(filter: dict, limit: int = 0) -> List[GvcObject]:
         if not filter:
@@ -75,40 +40,4 @@ class DBManager:
             return []
 
         items = resp.json()
-        objects_list: List[GvcObject] = []
-
-        for item in tqdm(items, desc="Processando itens filtrados"):
-            gvc = GvcObject()
-            gvc.ObjectId = item.get("objectid", 0)
-            gvc.Name = item.get("name", "")
-            gvc.Type = item.get("type", "")
-            gvc.SourceFile = item.get("sourcefile", "")
-
-            properties_raw = item.get("properties", [])
-            gvc.Properties = [
-                Property(
-                    property_id=prop.get("propertyid", 0),
-                    category=prop.get("category", ""),
-                    name=prop.get("name", ""),
-                    info=prop.get("info", "")
-                )
-                for prop in properties_raw
-            ]
-
-            geometries_raw = item.get("geometries", [])
-            gvc.Geometries = []
-            for geo in geometries_raw:
-                geometry = Geometry()
-                mesh_data_b64 = geo.get("mesh")
-                if mesh_data_b64:
-                    mesh_data = base64.b64decode(mesh_data_b64) if isinstance(mesh_data_b64, str) else mesh_data_b64
-                    geometry.decode_mesh(mesh_data)
-                geometry.GeometryId = geo.get("geometryid", 0)
-                geometry.ObjectId = gvc.ObjectId
-                geometry.Transform = geo.get("transform")
-                gvc.Geometries.append(geometry)
-
-            objects_list.append(gvc)
-
-        return objects_list
-
+        return GvcObject.build(items)

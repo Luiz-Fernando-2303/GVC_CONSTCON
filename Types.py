@@ -1,5 +1,6 @@
 from typing import List, Optional, Tuple
 import numpy as np
+import base64
 
 class Property:
     def __init__(self, category: str, name: str, info: str, property_id: Optional[int] = None):
@@ -99,6 +100,45 @@ class GvcObject:
         self.SourceFile: str = source_file
         self.Properties: List[Property] = properties or []
         self.Geometries: List[Geometry] = geometries or []
+
+    @staticmethod
+    def build(items_json) -> List['GvcObject']:
+        objects_list: List[GvcObject] = []
+
+        for item in items_json:
+            gvc = GvcObject()
+            gvc.ObjectId = item.get("objectid", 0) or item.get("ObjectId", 0)
+            gvc.Name = item.get("name", "") or item.get("Name", "")
+            gvc.Type = item.get("type", "") or item.get("Type", "")
+            gvc.SourceFile = item.get("sourcefile", "") or item.get("SourceFile", "")
+
+            properties_raw = item.get("properties", []) or item.get("Properties", [])
+            gvc.Properties = [
+                Property(
+                    property_id=prop.get("propertyId", 0) or prop.get("PropertyId", 0),
+                    category=prop.get("category", "") or prop.get("Category", ""),
+                    name=prop.get("name", "") or prop.get("Name", ""),
+                    info=prop.get("info", "") or prop.get("Info", ""),
+                )
+                for prop in properties_raw
+            ]
+
+            geometries_raw = item.get("geometries", []) or item.get("Geometries", [])
+            gvc.Geometries = []
+            for geo in geometries_raw:
+                geometry = Geometry()
+                mesh_data_b64 = geo.get("mesh") or geo.get("Mesh")
+                if mesh_data_b64:
+                    mesh_data = base64.b64decode(mesh_data_b64) if isinstance(mesh_data_b64, str) else mesh_data_b64
+                    geometry.decode_mesh(mesh_data)
+                geometry.GeometryId = geo.get("geometryid", 0) or geo.get("GeometryId", 0)
+                geometry.ObjectId = gvc.ObjectId
+                geometry.Transform = geo.get("transform") or geo.get("Transform")
+                gvc.Geometries.append(geometry)
+
+            objects_list.append(gvc)
+
+        return objects_list
 
     def __repr__(self):
         return f"GvcObject(Name={self.Name}, Type={self.Type}, Properties={len(self.Properties)}, Geometries={len(self.Geometries)})"
