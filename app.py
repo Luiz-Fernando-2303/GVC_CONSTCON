@@ -4,7 +4,6 @@ from classification_cycle import *
 
 app = Flask(__name__)
 
-
 @app.route("/analyze", methods=["POST"])
 def analyze():
     try:
@@ -51,5 +50,6 @@ def health():
     return jsonify({"status": "ok"})
 
 if __name__ == "__main__":
+    import torch
     torch.set_num_threads(1)
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5500, debug=False)
