@@ -1,6 +1,68 @@
 from typing import List, Optional, Tuple
 import numpy as np
 import base64
+from transformers import BertModel
+from torch.utils.data import Dataset
+import torch
+import torch.nn as nn
+
+class TextDataset(Dataset):
+    def __init__(self, texts, labels, tokenizer, label_encoder, max_len=128):
+        self.texts = texts
+        self.labels = label_encoder.transform(labels)
+        self.tokenizer = tokenizer
+        self.max_len = max_len
+
+    def __len__(self):
+        return len(self.texts)
+
+    def __getitem__(self, idx):
+        text = str(self.texts[idx])
+        label = self.labels[idx]
+
+        encoding = self.tokenizer.encode_plus(
+            text,
+            add_special_tokens=True,
+            truncation=True,
+            max_length=self.max_len,
+            padding="max_length",
+            return_tensors="pt",
+            return_attention_mask=True
+        )
+
+        return {
+            "input_ids": encoding["input_ids"].flatten(),
+            "attention_mask": encoding["attention_mask"].flatten(),
+            "labels": torch.tensor(label, dtype=torch.long)
+        }
+
+class TransformerClassifier(nn.Module):
+    def __init__(self, num_labels):
+        super().__init__()
+        self.bert = BertModel.from_pretrained("bert-base-uncased")
+        self.dropout = nn.Dropout(0.3)
+        self.fc = nn.Linear(self.bert.config.hidden_size, num_labels)
+
+    def forward(self, input_ids, attention_mask):
+        outputs = self.bert(
+            input_ids=input_ids,
+            attention_mask=attention_mask
+        )
+        pooled_output = outputs.pooler_output
+        x = self.dropout(pooled_output)
+        return self.fc(x)
+
+class TrainingData:
+    def __init__(self, propText: str, code: str):
+        self.PropText = propText
+        self.Code = code
+
+    @staticmethod
+    def build(items: list):
+        return [TrainingData(i.get("propText", ""), i.get("expectedCode", "")) for i in items]
+
+    def __repr__(self):
+        return f"TrainingDataDto({self.PropText}, {self.Code})"
 
 class Property:
     def __init__(self, category: str, name: str, info: str, property_id: Optional[int] = None):
