@@ -88,16 +88,20 @@ def classify():
 def train():
     def background_train():
         try:
+            print("[INFO] Starting to fetch training data...")
             texts, labels = get_training_data(limit=100000)
-            train_model(texts, labels, epochs=8, batch_size=16)
-        except Exception as e:
-            print("Erro no treinamento:", e)
+            print(f"[INFO] Data fetched: {len(texts)} texts, {len(labels)} labels")
 
+            print("[INFO] Starting model training...")
+            train_model(texts, labels, epochs=8, batch_size=16)
+            print("[INFO] Model training completed successfully!")
+        except Exception as e:
+            print("[ERROR] Training error:", e)
+
+    print("[INFO] Training started in background")
     Thread(target=background_train).start()
     return jsonify({"status": "started"}), 200
     
-
-
 @app.route("/health", methods=["GET"])
 def health():
     return jsonify({"status": "ok"})
