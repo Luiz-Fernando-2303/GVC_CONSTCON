@@ -2,6 +2,7 @@ from flask import Flask, jsonify, request
 from Types import GvcObject
 from classification_cycle import *
 from predict import *
+from neuralnet import *
 
 app = Flask(__name__)
 
@@ -81,7 +82,24 @@ def classify():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+@app.route("/model/train", methods=["GET"])
+def train():
+    try:
+        texts, labels = get_training_data(limit=100000)
+        train_model(texts, labels, epochs=8, batch_size=16)
 
+        report = {
+            "texts": len(texts),
+            "labels": len(labels),
+            "epochs": 8,
+            "batch_size": 16
+        }
+
+        return jsonify(report), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
 
 
 @app.route("/health", methods=["GET"])
