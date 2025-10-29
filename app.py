@@ -3,6 +3,7 @@ from Types import GvcObject
 from classification_cycle import *
 from predict import *
 from neuralnet import *
+from threading import Thread
 
 app = Flask(__name__)
 
@@ -85,20 +86,15 @@ def classify():
     
 @app.route("/model/train", methods=["GET"])
 def train():
-    try:
-        texts, labels = get_training_data(limit=100000)
-        train_model(texts, labels, epochs=8, batch_size=16)
+    def background_train():
+        try:
+            texts, labels = get_training_data(limit=100000)
+            train_model(texts, labels, epochs=8, batch_size=16)
+        except Exception as e:
+            print("Erro no treinamento:", e)
 
-        report = {
-            "texts": len(texts),
-            "labels": len(labels),
-            "epochs": 8,
-            "batch_size": 16
-        }
-
-        return jsonify(report), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    Thread(target=background_train).start()
+    return jsonify({"status": "started"}), 200
     
 
 
