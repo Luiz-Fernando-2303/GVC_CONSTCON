@@ -11,7 +11,7 @@ from tqdm import tqdm
 from Types import *
 
 
-API = "http://ec2-34-229-178-60.compute-1.amazonaws.com:5000/modelitems" 
+API = "http://ec2-54-166-164-195.compute-1.amazonaws.com:5000/modelitems" 
 # API = "http://localhost:5066/modelitems"
 BASE_URL_TRAININGDATA = f"{API}/trainData/get"
 MODEL_DIR = "model_transformer"
