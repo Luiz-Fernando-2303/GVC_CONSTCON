@@ -7,7 +7,7 @@ from threading import Thread
 
 app = Flask(__name__)
 
-@app.route("/analyze", methods=["POST"])
+@app.route("/analyze", methods=["POST"]) 
 def analyze():
     try:
         data = request.get_json(force=True)
@@ -48,7 +48,7 @@ def analyze():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route("/classify", methods=["POST"])
+@app.route("/classify", methods=["POST"]) # POST to http://ec2-54-166-164-195.compute-1.amazonaws.com:5500/classify
 def classify():
     try:
         data = request.get_json(force=True)
@@ -59,14 +59,14 @@ def classify():
             predict_data : dict[str, str] = {}
 
             for object in objects:
-                propTexts = [prop.info for prop in object.Properties]
-                propTexts = ', '.join([prop.info for prop in object.Properties])
+                propTexts = [prop.Info for prop in object.Properties]
+                propTexts = ', '.join([prop.Info for prop in object.Properties])
                 predict_data[object.Name] = propTexts
 
             results : dict[str, str] = {}
             for data in predict_data:
                 text = predict_data[data]
-                result = predict_list([text])[0]
+                result : List[str] = predict_list([text])[0]
                 results[data] = result
 
             return jsonify(results)
@@ -84,7 +84,7 @@ def classify():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     
-@app.route("/model/train", methods=["GET"])
+@app.route("/model/train", methods=["GET"]) # curl -X GET http://ec2-54-166-164-195.compute-1.amazonaws.com:8000/model/train
 def train():
     def background_train():
         try:
