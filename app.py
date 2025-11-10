@@ -51,9 +51,11 @@ def analyze():
 @app.route("/classify", methods=["POST"]) # POST to http://ec2-54-166-164-195.compute-1.amazonaws.com:5500/classify
 def classify():
     try:
+        print("[INFO] Received request to classify data")
         data = request.get_json(force=True)
 
         if isinstance(data, list) and all(isinstance(x, dict) for x in data):
+            print("[INFO] Data is list of objects")
             objects = GvcObject.build(data)
 
             predict_data : dict[str, str] = {}
@@ -66,22 +68,30 @@ def classify():
             results : dict[str, str] = {}
             for data in predict_data:
                 text = predict_data[data]
+                print(f"[INFO] Predicting code for {data} with text: {text}")
                 result : List[str] = predict_list([text])[0]
                 results[data] = result
 
+            print("[INFO] Prediction is done")
             return jsonify(results)
         
         if isinstance(data, list) and all(isinstance(x, str) for x in data):
+            print("[INFO] Data is list of strings")
             result = predict_list(data)
+            print("[INFO] Prediction is done")
             return jsonify(result)
         
         if isinstance(data, str):
+            print("[INFO] Data is single string")
             result = predict_list([data])
+            print("[INFO] Prediction is done")
             return jsonify({data: result[0]})
 
+        print("[INFO] Error: Invalid data format")
         return jsonify({"error": "Formato inválido. Envie um JSON de objeto(s) ou lista de textos."}), 400
 
     except Exception as e:
+        print(f"[INFO] Error: {str(e)}")
         return jsonify({"error": str(e)}), 500
     
 @app.route("/model/train", methods=["GET"]) # curl -X GET http://ec2-54-166-164-195.compute-1.amazonaws.com:8000/model/train

@@ -7,12 +7,11 @@ import torch.optim as optim
 from sklearn.preprocessing import LabelEncoder
 import joblib
 import os
-from tqdm import tqdm
 from Types import *
+import time
 
 
 API = "http://ec2-54-166-164-195.compute-1.amazonaws.com:5000/modelitems" 
-# API = "http://localhost:5066/modelitems"
 BASE_URL_TRAININGDATA = f"{API}/trainData/get"
 MODEL_DIR = "model_transformer"
 os.makedirs(MODEL_DIR, exist_ok=True)
@@ -61,27 +60,31 @@ def train_model(texts, labels, epochs=2, batch_size=8):
     model.to(device)
     print(f"[INFO] Using device: {device}")
 
+    total_timer = time.time()
     for epoch in range(epochs):
         print(f"[INFO] Starting epoch {epoch+1}/{epochs}")
         model.train()
         total_loss = 0
-        for batch_idx, batch in enumerate(tqdm(dataloader, desc=f"Epoch {epoch+1}/{epochs}")):
+        epoch_timer = time.time()
+        for batch in dataloader:
+            print(f"[INFO] Processing batch {batch['input_ids'].shape[0]}")
             optimizer.zero_grad()
             input_ids = batch["input_ids"].to(device)
             attention_mask = batch["attention_mask"].to(device)
             labels_batch = batch["labels"].to(device)
 
+            batch_timer = time.time()
             outputs = model(input_ids, attention_mask)
             loss = loss_fn(outputs, labels_batch)
             loss.backward()
             optimizer.step()
             total_loss += loss.item()
-
-            if (batch_idx + 1) % 10 == 0:
-                print(f"[INFO] Batch {batch_idx+1}/{len(dataloader)} - Loss: {loss.item():.4f}")
+            print(f"[INFO] Batch finished in {time.time() - batch_timer:.4f} seconds")
 
         avg_loss = total_loss / len(dataloader)
-        print(f"[INFO] Epoch {epoch+1} finished - Average Loss: {avg_loss:.4f}")
+        print(f"[INFO] Epoch {epoch+1} finished in {time.time() - epoch_timer:.4f} seconds - Average Loss: {avg_loss:.4f}")
+
+    print(f"[INFO] Training completed successfully in {time.time() - total_timer:.4f} seconds")
 
     print("[INFO] Saving model, tokenizer, and label encoder...")
     os.makedirs(MODEL_DIR, exist_ok=True)
@@ -91,7 +94,6 @@ def train_model(texts, labels, epochs=2, batch_size=8):
     print("[INFO] Training completed successfully!")
 
     return model, tokenizer, label_encoder
-
 
 def predict(text, model, tokenizer, label_encoder):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
